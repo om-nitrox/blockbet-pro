@@ -1,254 +1,930 @@
 // Contract configuration and utilities
-export const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x1234567890123456789012345678901234567890'
+export const CONTRACT_ADDRESS = process.env.REACT_APP_CONTRACT_ADDRESS || '0x04257401736295c7a73491092a278a7e08b2288a'
 
+// REAL ABI from your deployed BlockBetEnhanced contract
 export const CONTRACT_ABI = [
-  // View functions
-  'function getRoundInfo(uint256 _roundId) view returns (string, string[], bool, bool, uint256, uint256)',
-  'function getOptionBets(uint256 _roundId, uint256 _option) view returns (uint256)',
-  'function getUserBet(uint256 _roundId, address _user) view returns (uint256, uint256, bool)',
-  'function getRoundBettors(uint256 _roundId) view returns (address[])',
-  'function owner() view returns (address)',
-  'function roundCounter() view returns (uint256)',
-  
-  // State changing functions
-  'function placeBet(uint256 _roundId, uint256 _option) payable',
-  'function createRound(string _question, string[] _options)',
-  'function resolveRound(uint256 _roundId, uint256 _correctOption)',
-  'function claimWinnings(uint256 _roundId)',
-  'function emergencyWithdraw()',
-  'function transferOwnership(address newOwner)',
-  
-  // Events
-  'event RoundCreated(uint256 indexed roundId, string question)',
-  'event BetPlaced(uint256 indexed roundId, address indexed bettor, uint256 option, uint256 amount)',
-  'event RoundResolved(uint256 indexed roundId, uint256 correctOption)',
-  'event WinningsClaimed(address indexed winner, uint256 amount)'
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "bettor",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "option",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "weight",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "blockCount",
+        "type": "uint256"
+      }
+    ],
+    "name": "BetPlaced",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "at",
+        "type": "uint64"
+      }
+    ],
+    "name": "BettingClosed",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "cancelRound",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "payout",
+        "type": "uint256"
+      }
+    ],
+    "name": "Claimed",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "claimWinnings",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "closeBetting",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "string",
+        "name": "question",
+        "type": "string"
+      },
+      {
+        "internalType": "string[]",
+        "name": "options",
+        "type": "string[]"
+      },
+      {
+        "internalType": "uint64",
+        "name": "startTime",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint64",
+        "name": "endTime",
+        "type": "uint64"
+      },
+      {
+        "internalType": "uint16",
+        "name": "feeBps",
+        "type": "uint16"
+      },
+      {
+        "internalType": "uint16",
+        "name": "bonusBpsPerExtra",
+        "type": "uint16"
+      },
+      {
+        "internalType": "address",
+        "name": "resolver_",
+        "type": "address"
+      }
+    ],
+    "name": "createRound",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "emergencyWithdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "EmergencyWithdraw",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "maxBlockExtra",
+        "type": "uint256"
+      }
+    ],
+    "name": "MaxBlockExtraSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "minBet",
+        "type": "uint256"
+      }
+    ],
+    "name": "MinBetSet",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "option",
+        "type": "uint8"
+      }
+    ],
+    "name": "placeBet",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "refund",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Refunded",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "correctOption",
+        "type": "uint8"
+      }
+    ],
+    "name": "resolveRound",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "RoundCanceled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "question",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "string[]",
+        "name": "options",
+        "type": "string[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "startTime",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "endTime",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint16",
+        "name": "feeBps",
+        "type": "uint16"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint16",
+        "name": "bonusBpsPerExtra",
+        "type": "uint16"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "resolver",
+        "type": "address"
+      }
+    ],
+    "name": "RoundCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "correctOption",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalPot",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "feeTaken",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalWinningWeight",
+        "type": "uint256"
+      }
+    ],
+    "name": "RoundResolved",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_max",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMaxBlockExtra",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_minBet",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMinBet",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_treasury",
+        "type": "address"
+      }
+    ],
+    "name": "setTreasury",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "treasury",
+        "type": "address"
+      }
+    ],
+    "name": "TreasurySet",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "to",
+        "type": "address"
+      }
+    ],
+    "name": "withdrawProtocolFees",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "BPS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "EMERGENCY_WITHDRAW_DELAY",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getNetPot",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getOptions",
+    "outputs": [
+      {
+        "internalType": "string[]",
+        "name": "",
+        "type": "string[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "option",
+        "type": "uint8"
+      }
+    ],
+    "name": "getOptionTotals",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getRoundInfo",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "string",
+            "name": "question",
+            "type": "string"
+          },
+          {
+            "internalType": "uint64",
+            "name": "startTime",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "endTime",
+            "type": "uint64"
+          },
+          {
+            "internalType": "bool",
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "resolved",
+            "type": "bool"
+          },
+          {
+            "internalType": "bool",
+            "name": "canceled",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint8",
+            "name": "correctOption",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint16",
+            "name": "feeBps",
+            "type": "uint16"
+          },
+          {
+            "internalType": "uint16",
+            "name": "bonusBpsPerExtra",
+            "type": "uint16"
+          },
+          {
+            "internalType": "address",
+            "name": "resolver",
+            "type": "address"
+          }
+        ],
+        "internalType": "struct BlockBetEnhanced.RoundInfo",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getRoundStats",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "totalPot",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "totalWinningWeight",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "emergencyWithdrawn",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct BlockBetEnhanced.RoundStats",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getRoundStatus",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "active",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "resolved",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "canceled",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "user",
+        "type": "address"
+      }
+    ],
+    "name": "getUserBet",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "weight",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint8",
+        "name": "option",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bool",
+        "name": "exists",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "claimed",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "roundId",
+        "type": "uint256"
+      }
+    ],
+    "name": "hasWinners",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_BONUS_BPS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_FEE_BPS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_OPTIONS",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxBlockExtra",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minBet",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "nextRoundId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "protocolFeesAccrued",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "roundsCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "treasury",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
 ]
 
-// Network configurations
+// Keep the corrected network configuration
 export const SUPPORTED_NETWORKS = {
   monadTestnet: {
-    chainId: 41454,
-    chainIdHex: '0xa1f6',
+    chainId: 10143,
+    chainIdHex: '0x279f',
     name: 'Monad Testnet',
     rpcUrl: 'https://testnet-rpc.monad.xyz',
-    blockExplorerUrl: 'https://testnet-explorer.monad.xyz',
+    blockExplorerUrl: 'https://testnet.monadexplorer.com',
     nativeCurrency: {
       name: 'ETH',
       symbol: 'ETH',
       decimals: 18
     }
-  },
-  monadMainnet: {
-    chainId: 41455,
-    chainIdHex: '0xa1f7', 
-    name: 'Monad Mainnet',
-    rpcUrl: 'https://rpc.monad.xyz',
-    blockExplorerUrl: 'https://explorer.monad.xyz',
-    nativeCurrency: {
-      name: 'ETH',
-      symbol: 'ETH', 
-      decimals: 18
-    }
   }
 }
 
-// Default network
+// Rest of your file remains the same...
 export const DEFAULT_NETWORK = SUPPORTED_NETWORKS.monadTestnet
-
-// Contract interaction utilities
-export const CONTRACT_METHODS = {
-  // Read methods
-  GET_ROUND_INFO: 'getRoundInfo',
-  GET_OPTION_BETS: 'getOptionBets',
-  GET_USER_BET: 'getUserBet',
-  GET_ROUND_BETTORS: 'getRoundBettors',
-  GET_OWNER: 'owner',
-  GET_ROUND_COUNTER: 'roundCounter',
-  
-  // Write methods  
-  PLACE_BET: 'placeBet',
-  CREATE_ROUND: 'createRound',
-  RESOLVE_ROUND: 'resolveRound',
-  CLAIM_WINNINGS: 'claimWinnings',
-  EMERGENCY_WITHDRAW: 'emergencyWithdraw',
-  TRANSFER_OWNERSHIP: 'transferOwnership'
-}
-
-// Contract events
-export const CONTRACT_EVENTS = {
-  ROUND_CREATED: 'RoundCreated',
-  BET_PLACED: 'BetPlaced', 
-  ROUND_RESOLVED: 'RoundResolved',
-  WINNINGS_CLAIMED: 'WinningsClaimed'
-}
-
-// Gas limit configurations
-export const GAS_LIMITS = {
-  PLACE_BET: 150000,
-  CREATE_ROUND: 200000,
-  RESOLVE_ROUND: 100000,
-  CLAIM_WINNINGS: 100000,
-  EMERGENCY_WITHDRAW: 80000,
-  TRANSFER_OWNERSHIP: 60000
-}
-
-// Minimum bet amounts
-export const MIN_BET_AMOUNT = '0.001' // ETH
-
-// Maximum number of options per round
-export const MAX_OPTIONS_PER_ROUND = 10
-
-// Contract state enums
-export const ROUND_STATUS = {
-  INACTIVE: 'inactive',
-  ACTIVE: 'active',
-  RESOLVED: 'resolved'
-}
-
-// Error codes
-export const ERROR_CODES = {
-  INVALID_ROUND: 'INVALID_ROUND',
-  ROUND_NOT_ACTIVE: 'ROUND_NOT_ACTIVE',
-  INVALID_OPTION: 'INVALID_OPTION',
-  ALREADY_PLACED_BET: 'ALREADY_PLACED_BET',
-  NO_BET_PLACED: 'NO_BET_PLACED',
-  INCORRECT_PREDICTION: 'INCORRECT_PREDICTION',
-  ALREADY_CLAIMED: 'ALREADY_CLAIMED',
-  ROUND_NOT_RESOLVED: 'ROUND_NOT_RESOLVED',
-  INSUFFICIENT_FUNDS: 'INSUFFICIENT_FUNDS',
-  UNAUTHORIZED: 'UNAUTHORIZED'
-}
-
-// Error messages
-export const ERROR_MESSAGES = {
-  [ERROR_CODES.INVALID_ROUND]: 'Invalid round ID',
-  [ERROR_CODES.ROUND_NOT_ACTIVE]: 'This betting round is not active',
-  [ERROR_CODES.INVALID_OPTION]: 'Invalid betting option selected',
-  [ERROR_CODES.ALREADY_PLACED_BET]: 'You have already placed a bet on this round',
-  [ERROR_CODES.NO_BET_PLACED]: 'No bet found for this round',
-  [ERROR_CODES.INCORRECT_PREDICTION]: 'Your prediction was incorrect',
-  [ERROR_CODES.ALREADY_CLAIMED]: 'Winnings already claimed',
-  [ERROR_CODES.ROUND_NOT_RESOLVED]: 'Round has not been resolved yet',
-  [ERROR_CODES.INSUFFICIENT_FUNDS]: 'Insufficient funds for transaction',
-  [ERROR_CODES.UNAUTHORIZED]: 'You are not authorized to perform this action'
-}
-
-// Contract validation utilities
-export const validateRoundId = (roundId) => {
-  return roundId && Number.isInteger(Number(roundId)) && Number(roundId) > 0
-}
-
-export const validateOptionIndex = (optionIndex, totalOptions) => {
-  return Number.isInteger(Number(optionIndex)) && 
-         Number(optionIndex) >= 0 && 
-         Number(optionIndex) < totalOptions
-}
-
-export const validateBetAmount = (amount) => {
-  try {
-    const numAmount = parseFloat(amount)
-    return numAmount > 0 && numAmount >= parseFloat(MIN_BET_AMOUNT)
-  } catch {
-    return false
-  }
-}
-
-export const validateAddress = (address) => {
-  return address && address.length === 42 && address.startsWith('0x')
-}
-
-// Contract data formatters
-export const formatRoundData = (rawRoundData) => {
-  if (!rawRoundData) return null
-  
-  return {
-    question: rawRoundData[0] || '',
-    options: rawRoundData[1] || [],
-    active: rawRoundData[2] || false,
-    resolved: rawRoundData[3] || false,
-    totalPot: rawRoundData[4] ? rawRoundData[4].toString() : '0',
-    correctOption: rawRoundData[5] ? rawRoundData[5].toNumber() : 0
-  }
-}
-
-export const formatUserBet = (rawUserBet) => {
-  if (!rawUserBet) return null
-  
-  return {
-    option: rawUserBet[0] ? rawUserBet[0].toNumber() : 0,
-    amount: rawUserBet[1] ? rawUserBet[1].toString() : '0',
-    claimed: rawUserBet[2] || false
-  }
-}
-
-// Contract interaction helpers
-export const buildContractCallData = (method, params = []) => {
-  return {
-    method,
-    params,
-    gasLimit: GAS_LIMITS[method.toUpperCase()] || 200000
-  }
-}
-
-// Event parsing utilities  
-export const parseContractEvent = (event) => {
-  const { event: eventName, args, transactionHash, blockNumber } = event
-  
-  const baseEvent = {
-    eventName,
-    txHash: transactionHash,
-    blockNumber: blockNumber,
-    timestamp: Date.now() // Note: In production, get actual block timestamp
-  }
-  
-  switch (eventName) {
-    case CONTRACT_EVENTS.ROUND_CREATED:
-      return {
-        ...baseEvent,
-        roundId: args.roundId.toNumber(),
-        question: args.question
-      }
-      
-    case CONTRACT_EVENTS.BET_PLACED:
-      return {
-        ...baseEvent,
-        roundId: args.roundId.toNumber(),
-        bettor: args.bettor,
-        option: args.option.toNumber(),
-        amount: args.amount.toString()
-      }
-      
-    case CONTRACT_EVENTS.ROUND_RESOLVED:
-      return {
-        ...baseEvent,
-        roundId: args.roundId.toNumber(),
-        correctOption: args.correctOption.toNumber()
-      }
-      
-    case CONTRACT_EVENTS.WINNINGS_CLAIMED:
-      return {
-        ...baseEvent,
-        winner: args.winner,
-        amount: args.amount.toString()
-      }
-      
-    default:
-      return baseEvent
-  }
-}
-
-// Export contract configuration object
-export const CONTRACT_CONFIG = {
-  address: CONTRACT_ADDRESS,
-  abi: CONTRACT_ABI,
-  networks: SUPPORTED_NETWORKS,
-  defaultNetwork: DEFAULT_NETWORK,
-  methods: CONTRACT_METHODS,
-  events: CONTRACT_EVENTS,
-  gasLimits: GAS_LIMITS,
-  minBetAmount: MIN_BET_AMOUNT,
-  maxOptionsPerRound: MAX_OPTIONS_PER_ROUND
-}
-
-export default CONTRACT_CONFIG

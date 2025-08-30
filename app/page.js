@@ -1,958 +1,1193 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Trophy, Zap, Shield, Award, BarChart3, Users, RefreshCw, 
-  TrendingUp, Play, CheckCircle, Pause, Star, Wallet, LogOut, 
-  Sparkles 
-} from 'lucide-react'
+import { ethers } from 'ethers'
+import { useWallet } from './hooks/useWallet'
 import { toast } from 'react-hot-toast'
-
-// Mock hook for demo
-const useMockContract = () => {
-  const [account, setAccount] = useState(null)
-  const [balance, setBalance] = useState('0')
-  const [isOwner, setIsOwner] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-
-  const mockRounds = {
-    1: {
-      question: "Will Bitcoin hit $100k by end of 2025?",
-      options: ["Yes", "No"],
-      active: true,
-      resolved: false,
-      totalPot: "2.456",
-      correctOption: 0,
-      optionBets: ["1.234", "1.222"],
-      userBet: null
-    },
-    2: {
-      question: "Will India win the World Cup 2025?",
-      options: ["Yes", "No", "Draw"],
-      active: false,
-      resolved: true,
-      totalPot: "5.789",
-      correctOption: 0,
-      optionBets: ["3.456", "1.333", "1.000"],
-      userBet: { option: 0, amount: "0.5", claimed: false }
-    },
-    3: {
-      question: "Will Ethereum reach $10k in 2025?",
-      options: ["Yes", "No"],
-      active: true,
-      resolved: false,
-      totalPot: "0.123",
-      correctOption: 0,
-      optionBets: ["0.023", "0.100"],
-      userBet: null
-    }
-  }
-
-  const connectWallet = async () => {
-    setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setAccount('0x1234...6fA5')
-    setBalance('10.456')
-    setIsOwner(true)
-    setIsLoading(false)
-    toast.success('🎉 Wallet Connected!')
-  }
-
-  const disconnect = () => {
-    setAccount(null)
-    setBalance('0')
-    setIsOwner(false)
-    toast.success('Wallet Disconnected!')
-  }
-
-  const loadRoundInfo = async (roundId) => {
-    setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 800))
-    setIsLoading(false)
-    return mockRounds[roundId] || null
-  }
-
-  const placeBet = async (roundId, option, amount) => {
-    setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    toast.success('🎉 Bet placed successfully!')
-    setIsLoading(false)
-  }
-
-  const createRound = async (question, options) => {
-    setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    toast.success('🚀 Round created!')
-    setIsLoading(false)
-  }
-
-  const resolveRound = async (roundId, option) => {
-    setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    toast.success('✅ Round resolved!')
-    setIsLoading(false)
-  }
-
-  const claimWinnings = async (roundId) => {
-    setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    toast.success('💰 Winnings claimed!')
-    setIsLoading(false)
-  }
-
-  return {
-    account,
-    balance,
-    isOwner,
-    isLoading,
-    connectWallet,
-    disconnect,
-    loadRoundInfo,
-    placeBet,
-    createRound,
-    resolveRound,
-    claimWinnings
-  }
-}
+import { 
+  Wallet, LogOut, Plus, Trophy, Zap, Target, Crown, Eye, Activity, 
+  RefreshCw, BarChart3, Shield, CheckCircle, XCircle, TrendingUp,
+  Users, Coins, Timer, Award, Star, Sparkles
+} from 'lucide-react'
 
 // Button Component
-const Button = ({ children, onClick, disabled, loading, variant = 'primary', size = 'md', icon, className = '' }) => {
-  const variants = {
-    primary: 'bg-gradient-to-r from-purple-600 via-pink-600 to-red-500 hover:from-purple-700 hover:via-pink-700 hover:to-red-600',
-    secondary: 'bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 hover:from-blue-700 hover:via-cyan-700 hover:to-teal-600',
-    success: 'bg-gradient-to-r from-green-600 via-emerald-600 to-teal-500 hover:from-green-700 hover:via-emerald-700 hover:to-teal-600',
-    warning: 'bg-gradient-to-r from-yellow-600 via-orange-600 to-red-500 hover:from-yellow-700 hover:via-orange-700 hover:to-red-600',
-    ghost: 'bg-white/10 hover:bg-white/20 border border-white/30 hover:border-white/50'
-  }
-  
-  const sizes = {
-    sm: 'px-4 py-2 text-sm',
-    md: 'px-6 py-3 text-base',
-    lg: 'px-8 py-4 text-lg'
+const Button = ({ children, onClick, disabled, loading, className = '', variant = 'primary' }) => {
+  const styles = {
+    primary: 'bg-blue-600 hover:bg-blue-700',
+    success: 'bg-green-600 hover:bg-green-700', 
+    warning: 'bg-yellow-600 hover:bg-yellow-700',
+    danger: 'bg-red-600 hover:bg-red-700',
+    ghost: 'bg-gray-600 hover:bg-gray-700',
+    admin: 'bg-orange-600 hover:bg-orange-700'
   }
 
   return (
-    <motion.button
-      whileHover={{ scale: disabled ? 1 : 1.05 }}
-      whileTap={{ scale: disabled ? 1 : 0.95 }}
+    <button
       onClick={onClick}
       disabled={disabled || loading}
       className={`
-        ${variants[variant]} ${sizes[size]}
+        px-4 py-2 text-white font-medium rounded-lg 
         disabled:opacity-50 disabled:cursor-not-allowed
-        text-white font-bold rounded-2xl
-        transition-all duration-300
-        backdrop-blur-sm
-        shadow-lg hover:shadow-2xl
-        relative overflow-hidden
-        group flex items-center justify-center gap-2
-        ${className}
+        transition-all duration-200 flex items-center gap-2 hover:transform hover:scale-105
+        ${styles[variant]} ${className}
       `}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-      <div className="relative flex items-center justify-center gap-2">
-        {loading ? (
-          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-        ) : (
-          <>
-            {icon && <span>{icon}</span>}
-            {children}
-          </>
-        )}
-      </div>
-    </motion.button>
+      {loading ? (
+        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      ) : (
+        children
+      )}
+    </button>
   )
 }
 
 // Card Component
-const Card = ({ children, className = '' }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`
-        bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/20 
-        shadow-xl hover:shadow-2xl transition-all duration-300
-        ${className}
-      `}
-    >
-      {children}
-    </motion.div>
-  )
-}
+const Card = ({ children, className = '' }) => (
+  <div className={`bg-white rounded-lg shadow-lg p-6 border ${className}`}>
+    {children}
+  </div>
+)
 
-// Floating Particles Component
-const FloatingParticles = () => {
+// Tab Navigation
+const TabNavigation = ({ activeTab, setActiveTab, isOwner }) => (
+  <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+    <div className="flex gap-3">
+      <Button
+        onClick={() => setActiveTab('betting')}
+        variant={activeTab === 'betting' ? 'primary' : 'ghost'}
+        className="flex items-center gap-2"
+      >
+        <BarChart3 className="w-5 h-5" />
+        🎯 Live Betting
+      </Button>
+      
+      {isOwner && (
+        <Button
+          onClick={() => setActiveTab('admin')}
+          variant={activeTab === 'admin' ? 'admin' : 'ghost'}
+          className="flex items-center gap-2"
+        >
+          <Crown className="w-5 h-5" />
+          👑 Admin Control
+        </Button>
+      )}
+    </div>
+  </Card>
+)
+
+// Wallet Info Component
+const WalletInfo = ({ account, balance, disconnect, isOwner }) => (
+  <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200">
+    <div className="flex justify-between items-center">
+      <div>
+        <div className="flex items-center gap-3 mb-2">
+          <Wallet className="w-6 h-6 text-blue-600" />
+          <span className="font-bold text-gray-800 text-lg">
+            {account?.slice(0, 8)}...{account?.slice(-6)}
+          </span>
+          {isOwner && (
+            <span className="bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-lg animate-pulse">
+              <Crown className="w-4 h-4" />
+              ADMIN WALLET
+            </span>
+          )}
+        </div>
+        <div className="text-3xl font-bold text-green-600 mb-2">
+          {parseFloat(balance).toFixed(4)} ETH
+        </div>
+        <div className="text-sm text-gray-600">
+          💰 Balance updates when you bet/win
+        </div>
+      </div>
+      <Button 
+        onClick={disconnect} 
+        variant="danger" 
+        className="flex items-center gap-2"
+      >
+        <LogOut className="w-4 h-4" />
+        Disconnect
+      </Button>
+    </div>
+  </Card>
+)
+
+// Enhanced Admin Panel with ALL Features
+const AdminPanel = ({ contract, onRefresh, roundData, currentRoundId, totalRounds }) => {
+  const [question, setQuestion] = useState('')
+  const [options, setOptions] = useState(['', '']) // Start with 2 empty options
+  const [loading, setLoading] = useState(false)
+  const [resolving, setResolving] = useState(false)
+
+  // CRITICAL: Add option function
+  const addOption = () => {
+    if (options.length < 10) {
+      setOptions([...options, ''])
+      toast.success(`Option ${options.length + 1} added!`)
+    } else {
+      toast.error('Maximum 10 options allowed')
+    }
+  }
+
+  // CRITICAL: Remove option function - THIS WAS MISSING
+  const removeOption = (indexToRemove) => {
+    if (options.length > 2) {
+      const newOptions = options.filter((_, index) => index !== indexToRemove)
+      setOptions(newOptions)
+      toast.success('Option removed!')
+    } else {
+      toast.error('Minimum 2 options required')
+    }
+  }
+
+  // Update option function
+  const updateOption = (index, value) => {
+    const updated = [...options]
+    updated[index] = value
+    setOptions(updated)
+  }
+
+  // Create round function
+  const handleCreateRound = async () => {
+    if (!question.trim()) {
+      toast.error('Please enter a question')
+      return
+    }
+
+    const validOptions = options.filter(opt => opt.trim())
+    if (validOptions.length < 2) {
+      toast.error('Please enter at least 2 valid options')
+      return
+    }
+
+    try {
+      setLoading(true)
+      console.log('🚀 Creating round:', { question, validOptions })
+      
+      const now = Math.floor(Date.now() / 1000)
+      const tx = await contract.createRound(
+        question,
+        validOptions,
+        now,
+        now + 86400, // 24 hours
+        500, // 5% fee
+        100, // 1% bonus
+        ethers.constants.AddressZero,
+        { gasLimit: 400000 }
+      )
+      
+      toast.promise(tx.wait(), {
+        loading: 'Creating betting round... 🚀',
+        success: '🎉 Round created! Users can now place bets!',
+        error: 'Failed to create round'
+      })
+      
+      await tx.wait()
+      console.log('✅ Round created successfully!')
+      
+      // Reset form
+      setQuestion('')
+      setOptions(['', ''])
+      onRefresh()
+    } catch (error) {
+      console.error('❌ Create round failed:', error)
+      toast.error('Failed to create round: ' + (error.reason || error.message))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // CRITICAL: Resolve round function - ANNOUNCE CORRECT ANSWER
+  const handleResolveRound = async (correctOption) => {
+    if (!contract || !roundData) {
+      toast.error('Contract or round data not available')
+      return
+    }
+
+    try {
+      setResolving(true)
+      console.log('⚖️ Resolving round:', { 
+        roundId: currentRoundId, 
+        correctOption, 
+        optionText: roundData.options[correctOption] 
+      })
+      
+      const tx = await contract.resolveRound(currentRoundId, correctOption, {
+        gasLimit: 300000
+      })
+      
+      toast.promise(tx.wait(), {
+        loading: `Announcing "${roundData.options[correctOption]}" as the correct answer... ⚖️`,
+        success: `✅ Round resolved! "${roundData.options[correctOption]}" was correct! Winners can claim rewards!`,
+        error: 'Failed to resolve round'
+      })
+
+      await tx.wait()
+      console.log('✅ Round resolved successfully!')
+      
+      // Refresh after resolution
+      setTimeout(() => {
+        onRefresh()
+        toast.success('🏆 Round closed! Winners can now claim their ETH!', { duration: 6000 })
+      }, 2000)
+      
+    } catch (error) {
+      console.error('❌ Resolve failed:', error)
+      toast.error('Failed to resolve: ' + (error.reason || error.message))
+    } finally {
+      setResolving(false)
+    }
+  }
+
+  // Quick templates
+  const templates = [
+    { question: "Will Bitcoin reach $100,000 by end of 2025?", options: ["Yes", "No"] },
+    { question: "Which team will win the next World Cup?", options: ["Brazil", "Argentina", "France", "Other"] },
+    { question: "Will Ethereum reach $10,000 in 2025?", options: ["Yes", "No"] },
+    { question: "Will it rain tomorrow?", options: ["Yes", "No"] },
+    { question: "Which crypto will perform better this month?", options: ["Bitcoin", "Ethereum", "Solana", "Other"] }
+  ]
+
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-      {[...Array(15)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute w-2 h-2 bg-purple-400/20 rounded-full"
-          animate={{
-            y: [0, -200, 0],
-            x: [0, 100, 0],
-            opacity: [0, 0.8, 0],
-            scale: [0.1, 1, 0.1],
-          }}
-          transition={{
-            duration: Math.random() * 8 + 4,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-            ease: "easeInOut"
-          }}
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-        />
-      ))}
+    <div className="space-y-8">
+      {/* Admin Dashboard Header */}
+      <Card className="bg-gradient-to-r from-orange-50 to-red-50 border-4 border-orange-300">
+        <div className="text-center mb-6">
+          <Crown className="w-20 h-20 text-orange-600 mx-auto mb-4 animate-bounce" />
+          <h2 className="text-4xl font-bold text-orange-800 mb-2">👑 ADMIN DASHBOARD</h2>
+          <p className="text-orange-600 text-xl font-medium">
+            Admin Wallet: 0xD41D...03DC
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-xl shadow-xl">
+            <BarChart3 className="w-10 h-10 mx-auto mb-3" />
+            <div className="text-4xl font-bold">{totalRounds}</div>
+            <div className="text-sm opacity-90">Total Rounds</div>
+          </div>
+          <div className="text-center p-6 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl shadow-xl">
+            <Coins className="w-10 h-10 mx-auto mb-3" />
+            <div className="text-4xl font-bold">
+              {roundData ? ethers.utils.formatEther(roundData.stats.totalPot || '0') : '0'}
+            </div>
+            <div className="text-sm opacity-90">Pool (ETH)</div>
+          </div>
+          <div className="text-center p-6 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-xl shadow-xl">
+            <Activity className="w-10 h-10 mx-auto mb-3" />
+            <div className="text-4xl font-bold">
+              {roundData?.info.active ? 'LIVE' : roundData?.info.resolved ? 'ENDED' : 'READY'}
+            </div>
+            <div className="text-sm opacity-90">Status</div>
+          </div>
+        </div>
+      </Card>
+
+      {/* CRITICAL: ANNOUNCE CORRECT ANSWER SECTION */}
+      {roundData && !roundData.info.resolved && !roundData.info.active && (
+        <Card className="bg-gradient-to-r from-red-50 to-pink-50 border-4 border-red-400 shadow-2xl">
+          <div className="text-center mb-8">
+            <Trophy className="w-20 h-20 text-red-600 mx-auto mb-4 animate-pulse" />
+            <h3 className="text-4xl font-bold text-red-800 mb-4">
+              🎯 ANNOUNCE THE CORRECT ANSWER!
+            </h3>
+            <div className="bg-red-100 p-6 rounded-xl mb-6 border-2 border-red-300">
+              <p className="text-red-700 text-2xl font-bold mb-2">
+                Question: {roundData.info.question}
+              </p>
+              <p className="text-red-800 font-bold text-3xl">
+                💰 Total Pool: {ethers.utils.formatEther(roundData.stats.totalPot)} ETH
+              </p>
+              <p className="text-red-600 text-lg mt-2">
+                This will be distributed to winners!
+              </p>
+            </div>
+          </div>
+          
+          <div className="space-y-6">
+            <h4 className="text-center text-red-800 font-bold text-2xl mb-8">
+              👇 CLICK THE CORRECT ANSWER:
+            </h4>
+            
+            <div className="grid gap-6">
+              {roundData.options.map((option, index) => {
+                const optionTotal = ethers.utils.formatEther(roundData.optionTotals[index] || '0')
+                const totalPot = ethers.utils.formatEther(roundData.stats.totalPot || '1')
+                const percentage = (parseFloat(optionTotal) / parseFloat(totalPot)) * 100
+
+                return (
+                  <div key={index} className="bg-white rounded-2xl border-4 border-red-200 shadow-2xl overflow-hidden hover:shadow-3xl transition-all transform hover:scale-102">
+                    <div className="p-8">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h5 className="text-3xl font-bold text-gray-800 mb-4">{option}</h5>
+                          <div className="grid grid-cols-2 gap-6 text-gray-600">
+                            <div>
+                              <span className="text-sm text-gray-500">Total Bets:</span>
+                              <div className="font-bold text-xl">{optionTotal} ETH</div>
+                            </div>
+                            <div>
+                              <span className="text-sm text-gray-500">Share:</span>
+                              <div className="font-bold text-xl">{percentage.toFixed(1)}%</div>
+                            </div>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-4 mt-4">
+                            <div 
+                              className="bg-gradient-to-r from-blue-500 to-purple-500 h-4 rounded-full transition-all duration-1000"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                        <div className="ml-10">
+                          <Button
+                            onClick={() => handleResolveRound(index)}
+                            disabled={resolving}
+                            loading={resolving}
+                            variant="success"
+                            className="px-10 py-8 text-2xl font-bold transform hover:scale-110 shadow-xl"
+                          >
+                            <Trophy className="w-10 h-10" />
+                            THIS IS CORRECT! ✅
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            
+            <div className="bg-yellow-100 border-4 border-yellow-400 p-6 rounded-xl">
+              <p className="text-yellow-800 font-bold text-center text-xl">
+                ⚠️ <strong>WARNING:</strong> Once you announce the winner, it cannot be changed! 
+                Winners will immediately be able to claim their ETH.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {/* Already Resolved Display */}
+      {roundData?.info.resolved && (
+        <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-4 border-green-400">
+          <div className="text-center py-8">
+            <CheckCircle className="w-24 h-24 text-green-600 mx-auto mb-6" />
+            <h3 className="text-4xl font-bold text-green-800 mb-6">✅ Round Successfully Resolved!</h3>
+            <div className="bg-green-100 p-8 rounded-xl mb-6">
+              <p className="text-green-800 font-bold text-2xl mb-4">
+                Question: {roundData.info.question}
+              </p>
+              <p className="text-green-700 text-3xl font-bold">
+                🏆 Winner: "{roundData.options[roundData.info.correctOption]}"
+              </p>
+            </div>
+            <p className="text-green-600 font-bold text-xl">
+              Winners can now claim their ETH rewards! 💰
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* Quick Templates */}
+      <Card className="bg-green-50 border-2 border-green-300">
+        <h3 className="text-2xl font-bold text-green-800 mb-6 flex items-center gap-3">
+          <Sparkles className="w-8 h-8" />
+          🚀 Quick Question Templates
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {templates.map((template, index) => (
+            <button
+              key={index}
+              onClick={() => {
+                setQuestion(template.question)
+                setOptions([...template.options])
+                toast.success('Template loaded! 📝')
+              }}
+              className="p-6 bg-green-100 hover:bg-green-200 rounded-xl text-left transition-all border-2 border-green-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <div className="font-bold text-green-800 mb-3">
+                {template.question}
+              </div>
+              <div className="text-sm text-green-600">
+                Options: {template.options.join(', ')}
+              </div>
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* Create New Round - WITH DELETE BUTTONS */}
+      <Card className="bg-yellow-50 border-4 border-yellow-400">
+        <div className="text-center mb-8">
+          <Plus className="w-16 h-16 text-yellow-600 mx-auto mb-4" />
+          <h2 className="text-3xl font-bold text-gray-800">🎲 Create New Betting Round</h2>
+        </div>
+        
+        <div className="space-y-8">
+          {/* Question Input */}
+          <div>
+            <label className="block text-lg font-bold text-gray-700 mb-3">
+              📝 Betting Question
+            </label>
+            <input
+              type="text"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="Enter your betting question..."
+              className="w-full px-6 py-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-yellow-300 focus:border-yellow-500 text-xl"
+            />
+          </div>
+
+          {/* Options with DELETE buttons */}
+          <div>
+            <label className="block text-lg font-bold text-gray-700 mb-3">
+              🎯 Answer Options
+            </label>
+            <div className="space-y-4">
+              {options.map((option, index) => (
+                <div key={index} className="flex gap-4 items-center">
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={option}
+                      onChange={(e) => updateOption(index, e.target.value)}
+                      placeholder={`Option ${index + 1}`}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-lg"
+                    />
+                  </div>
+                  
+                  {/* CRITICAL: DELETE BUTTON - This was missing/not working */}
+                  {options.length > 2 && (
+                    <Button 
+                      onClick={() => removeOption(index)}
+                      variant="danger"
+                      className="px-4 py-3 text-lg"
+                      title={`Delete Option ${index + 1}`}
+                    >
+                      <XCircle className="w-5 h-5" />
+                      Delete
+                    </Button>
+                  )}
+                  
+                  <div className="text-gray-500 text-sm font-medium">
+                    Option {index + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Add Option Button */}
+            {options.length < 10 && (
+              <Button 
+                onClick={addOption} 
+                variant="ghost" 
+                className="mt-4 text-lg"
+              >
+                <Plus className="w-5 h-5" /> 
+                Add Another Option
+              </Button>
+            )}
+            
+            <div className="text-sm text-gray-500 mt-2">
+              You can have between 2-10 options. Currently: {options.length}
+            </div>
+          </div>
+
+          {/* Create Button */}
+          <Button 
+            onClick={handleCreateRound} 
+            loading={loading}
+            variant="warning" 
+            className="w-full py-6 text-2xl font-bold"
+            disabled={!question.trim() || options.filter(o => o.trim()).length < 2}
+          >
+            <Plus className="w-8 h-8" />
+            🚀 Create Round & Start Betting!
+          </Button>
+        </div>
+      </Card>
+
+      {/* Admin Instructions */}
+      <Card className="bg-blue-50 border-2 border-blue-300">
+        <h3 className="text-xl font-bold text-blue-800 mb-4 flex items-center gap-3">
+          <Shield className="w-6 h-6" />
+          📋 Admin Instructions
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 className="font-bold text-blue-700 mb-2">Creating Rounds:</h4>
+            <ul className="text-sm text-blue-600 space-y-1">
+              <li>• Enter a clear question</li>
+              <li>• Add 2-10 answer options</li>
+              <li>• Use delete buttons to remove options</li>
+              <li>• Click create to start betting</li>
+            </ul>
+          </div>
+          <div>
+            <h4 className="font-bold text-blue-700 mb-2">Resolving Rounds:</h4>
+            <ul className="text-sm text-blue-600 space-y-1">
+              <li>• Wait for betting period to end</li>
+              <li>• Click correct answer to resolve</li>
+              <li>• Winners can immediately claim ETH</li>
+              <li>• Decision cannot be changed</li>
+            </ul>
+          </div>
+        </div>
+      </Card>
     </div>
   )
 }
 
-// Stats Card Component
-const StatsCard = ({ icon, title, value, change, trend }) => {
-  return (
-    <motion.div
-      whileHover={{ y: -8, scale: 1.02 }}
-      className="bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-2xl rounded-3xl p-8 border border-white/20 hover:border-white/30 transition-all duration-500 shadow-xl hover:shadow-2xl"
-    >
-      <div className="text-center space-y-4">
-        <div className="flex justify-center">
-          <div className="p-4 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl">
-            {icon}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="text-3xl font-bold text-white">{value}</div>
-          <div className="text-sm text-gray-400">{title}</div>
-          {change && (
-            <div className={`flex items-center justify-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-              trend === 'up' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
-            }`}>
-              {change}
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-// Premium Header Component
-const PremiumHeader = ({ account, balance, onConnect, onDisconnect, isLoading, isOwner }) => {
-  return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-20">
-      <div className="h-full bg-black/20 backdrop-blur-2xl border-b border-white/10">
-        <div className="h-full max-w-7xl mx-auto px-6 flex justify-between items-center">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-4"
-          >
-            <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-yellow-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-                BlockBet Pro
-              </h1>
-              <p className="text-sm text-gray-400">Powered by Monad Blockchain</p>
-            </div>
-          </motion.div>
-          
-          <div className="flex items-center gap-4">
-            {account ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-3 bg-gradient-to-r from-white/10 to-white/5 backdrop-blur-xl rounded-3xl px-6 py-3 border border-white/20"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                    <Wallet className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-medium">{account}</div>
-                    <div className="text-xs text-green-400 font-bold">{balance} ETH</div>
-                  </div>
-                </div>
-                {isOwner && (
-                  <div className="bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-full text-xs font-bold">
-                    👑 ADMIN
-                  </div>
-                )}
-                <Button
-                  onClick={onDisconnect}
-                  variant="ghost"
-                  size="sm"
-                  icon={<LogOut className="w-4 h-4" />}
-                />
-              </motion.div>
-            ) : (
-              <Button 
-                onClick={onConnect}
-                disabled={isLoading}
-                loading={isLoading}
-                size="lg"
-                className="btn-glow"
-              >
-                Connect Wallet
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-    </header>
-  )
-}
-
-// Main HomePage Component
-export default function HomePage() {
-  const {
-    account,
-    balance,
-    isOwner,
-    isLoading,
-    connectWallet,
-    disconnect,
-    loadRoundInfo,
-    placeBet,
-    createRound,
-    resolveRound,
-    claimWinnings
-  } = useMockContract()
-
-  const [currentRoundId, setCurrentRoundId] = useState(1)
-  const [roundInfo, setRoundInfo] = useState(null)
+// Simplified Betting Component (for users)
+const BettingRound = ({ roundId, roundData, contract, account, onRefresh, isOwner }) => {
   const [selectedOption, setSelectedOption] = useState(null)
   const [betAmount, setBetAmount] = useState('0.01')
-  const [activeTab, setActiveTab] = useState('betting')
+  const [loading, setLoading] = useState(false)
 
-  // Admin state
-  const [newQuestion, setNewQuestion] = useState('')
-  const [newOptions, setNewOptions] = useState(['', ''])
+  if (!roundData) {
+    return (
+      <Card className="text-center py-16">
+        <Eye className="w-20 h-20 mx-auto mb-6 text-gray-400" />
+        <h3 className="text-2xl font-bold text-gray-600 mb-4">No Round Data</h3>
+        <p className="text-gray-500">Round {roundId} not available</p>
+      </Card>
+    )
+  }
 
-  // Load round info effect
-  useEffect(() => {
-    const fetchRound = async () => {
-      if (account) {
-        try {
-          const round = await loadRoundInfo(currentRoundId)
-          setRoundInfo(round)
-        } catch (error) {
-          console.error('Error loading round:', error)
-        }
-      }
-    }
-    
-    fetchRound()
-  }, [currentRoundId, account])
-
-  // Handlers
   const handlePlaceBet = async () => {
-    if (selectedOption === null || !betAmount) return
-    
+    if (!contract || selectedOption === null || !betAmount) {
+      toast.error('Please select an option and enter bet amount')
+      return
+    }
+
     try {
-      await placeBet(currentRoundId, selectedOption, betAmount)
-      const updatedRound = await loadRoundInfo(currentRoundId)
-      setRoundInfo(updatedRound)
+      setLoading(true)
+      const tx = await contract.placeBet(roundId, selectedOption, {
+        value: ethers.utils.parseEther(betAmount),
+        gasLimit: 200000
+      })
+      
+      toast.promise(tx.wait(), {
+        loading: `Placing ${betAmount} ETH bet... 🎯`,
+        success: `🎉 Bet placed on "${roundData.options[selectedOption]}"!`,
+        error: 'Failed to place bet'
+      })
+
+      await tx.wait()
       setSelectedOption(null)
       setBetAmount('0.01')
+      onRefresh()
     } catch (error) {
-      console.error('Error placing bet:', error)
+      console.error('Error:', error)
+      toast.error('Failed to place bet: ' + (error.reason || error.message))
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleClaimWinnings = async () => {
     try {
-      await claimWinnings(currentRoundId)
-      const updatedRound = await loadRoundInfo(currentRoundId)
-      setRoundInfo(updatedRound)
+      setLoading(true)
+      const tx = await contract.claimWinnings(roundId, { gasLimit: 150000 })
+      
+      toast.promise(tx.wait(), {
+        loading: 'Claiming winnings... 💰',
+        success: '🎉 Winnings claimed successfully!',
+        error: 'Failed to claim'
+      })
+
+      await tx.wait()
+      onRefresh()
     } catch (error) {
-      console.error('Error claiming winnings:', error)
+      console.error('Error:', error)
+      toast.error('Failed to claim: ' + (error.reason || error.message))
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleCreateRound = async () => {
-    if (!newQuestion.trim() || newOptions.some(opt => !opt.trim())) {
-      toast.error('Please fill in all fields')
-      return
-    }
-    
-    try {
-      await createRound(newQuestion, newOptions.filter(opt => opt.trim()))
-      setNewQuestion('')
-      setNewOptions(['', ''])
-      setCurrentRoundId(prev => prev + 1)
-    } catch (error) {
-      console.error('Error creating round:', error)
-    }
-  }
+  const totalPot = ethers.utils.formatEther(roundData.stats.totalPot || '0')
+  const userBet = roundData.userBet
+  const canClaim = roundData.info.resolved && 
+    userBet?.exists && 
+    userBet.option === roundData.info.correctOption && 
+    !userBet.claimed
 
-  const handleResolveRound = async (option) => {
-    try {
-      await resolveRound(currentRoundId, option)
-      const updatedRound = await loadRoundInfo(currentRoundId)
-      setRoundInfo(updatedRound)
-    } catch (error) {
-      console.error('Error resolving round:', error)
-    }
-  }
-
-  const handleRefresh = async () => {
-    try {
-      const round = await loadRoundInfo(currentRoundId)
-      setRoundInfo(round)
-    } catch (error) {
-      console.error('Error refreshing round:', error)
-    }
-  }
-
-  const canUserClaim = roundInfo?.resolved && 
-    roundInfo?.userBet && 
-    roundInfo.userBet.option === roundInfo.correctOption && 
-    !roundInfo.userBet.claimed
+  const isLoser = roundData.info.resolved && 
+    userBet?.exists && 
+    userBet.option !== roundData.info.correctOption
 
   return (
-    <div className="w-screen h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white relative overflow-hidden">
-      <FloatingParticles />
+    <Card>
+      <h2 className="text-3xl font-bold text-gray-800 mb-6">
+        {roundData.info.question}
+      </h2>
       
+      {/* Live Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-xl text-center">
+          <Coins className="w-8 h-8 mx-auto mb-2" />
+          <div className="text-2xl font-bold">{totalPot}</div>
+          <div className="text-sm opacity-80">Total Pool (ETH)</div>
+        </div>
+        <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-xl text-center">
+          <Users className="w-8 h-8 mx-auto mb-2" />
+          <div className="text-2xl font-bold">{roundData.options.length}</div>
+          <div className="text-sm opacity-80">Options</div>
+        </div>
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-xl text-center">
+          <BarChart3 className="w-8 h-8 mx-auto mb-2" />
+          <div className="text-2xl font-bold">
+            {roundData.optionTotals.filter(t => parseFloat(ethers.utils.formatEther(t || '0')) > 0).length}
+          </div>
+          <div className="text-sm opacity-80">Active Bets</div>
+        </div>
+        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-4 rounded-xl text-center">
+          <Activity className="w-8 h-8 mx-auto mb-2" />
+          <div className="text-2xl font-bold">
+            {roundData.info.active ? 'LIVE' : roundData.info.resolved ? 'ENDED' : 'CLOSED'}
+          </div>
+          <div className="text-sm opacity-80">Status</div>
+        </div>
+      </div>
+
+      {/* Betting Options */}
+      <div className="space-y-4 mb-8">
+        {roundData.options.map((option, index) => {
+          const optionTotal = ethers.utils.formatEther(roundData.optionTotals[index] || '0')
+          const percentage = parseFloat(totalPot) > 0 ? 
+            (parseFloat(optionTotal) / parseFloat(totalPot) * 100) : 0
+          const isWinner = roundData.info.resolved && index === roundData.info.correctOption
+          const isSelected = selectedOption === index
+
+          return (
+            <div
+              key={index}
+              onClick={() => roundData.info.active && !isOwner && setSelectedOption(index)}
+              className={`
+                p-6 rounded-xl border-2 transition-all cursor-pointer relative overflow-hidden
+                ${isSelected 
+                  ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 shadow-lg transform scale-105' 
+                  : 'border-gray-200 hover:border-gray-300 bg-white hover:shadow-md'
+                }
+                ${isWinner ? 'border-green-500 bg-gradient-to-r from-green-50 to-green-100 shadow-lg' : ''}
+                ${!roundData.info.active || isOwner ? 'cursor-not-allowed opacity-75' : ''}
+              `}
+            >
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <div className={`w-6 h-6 rounded-full border-2 ${
+                    isSelected ? 'border-blue-500 bg-blue-500' : 'border-gray-300'
+                  }`}>
+                    {isSelected && <div className="w-3 h-3 bg-white rounded-full m-auto mt-0.5"></div>}
+                  </div>
+                  <span className="text-xl font-bold flex items-center gap-2">
+                    {option}
+                    {isWinner && (
+                      <span className="flex items-center gap-1 text-green-600">
+                        <Trophy className="w-6 h-6" />
+                        WINNER!
+                      </span>
+                    )}
+                  </span>
+                </div>
+                
+                <div className="text-right">
+                  <div className="text-xl font-bold">{optionTotal} ETH</div>
+                  <div className="text-sm text-gray-500">{percentage.toFixed(1)}%</div>
+                </div>
+              </div>
+              
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-4">
+                <div 
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-1000"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* User Bet Status */}
+      {userBet?.exists && parseFloat(ethers.utils.formatEther(userBet.amount)) > 0 && (
+        <Card className={`mb-6 ${
+          canClaim ? 'bg-green-50 border-4 border-green-400' : 
+          isLoser ? 'bg-red-50 border-4 border-red-400' : 
+          'bg-blue-50 border-4 border-blue-400'
+        }`}>
+          <div className="flex justify-between items-center">
+            <div>
+              <div className={`font-bold text-2xl flex items-center gap-3 ${
+                canClaim ? 'text-green-700' : 
+                isLoser ? 'text-red-700' : 
+                'text-blue-700'
+              }`}>
+                {canClaim ? (
+                  <>
+                    <Trophy className="w-8 h-8" />
+                    🎉 YOU WON!
+                  </>
+                ) : isLoser ? (
+                  <>
+                    <XCircle className="w-8 h-8" />
+                    😔 You Lost
+                  </>
+                ) : (
+                  <>
+                    <Target className="w-8 h-8" />
+                    Your Active Bet
+                  </>
+                )}
+              </div>
+              <div className="text-lg mt-2">
+                {ethers.utils.formatEther(userBet.amount)} ETH on "{roundData.options[userBet.option]}"
+              </div>
+            </div>
+            {canClaim && (
+              <Button 
+                onClick={handleClaimWinnings}
+                loading={loading}
+                variant="success"
+                className="animate-pulse text-xl px-8 py-4"
+              >
+                <Trophy className="w-6 h-6" />
+                Claim Winnings! 💰
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
+
+      {/* Betting Interface */}
+      {roundData.info.active && account && !userBet?.exists && !isOwner && (
+        <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-4 border-purple-300">
+          <h3 className="font-bold text-2xl mb-6 flex items-center gap-3">
+            <Zap className="w-8 h-8 text-purple-600" />
+            Place Your Bet - Win Real ETH!
+          </h3>
+          
+          <div className="flex gap-6 items-end mb-6">
+            <div className="flex-1">
+              <label className="block text-lg font-medium text-gray-700 mb-3">
+                💰 Bet Amount (ETH)
+              </label>
+              <input
+                type="number"
+                step="0.001"
+                min="0.001"
+                value={betAmount}
+                onChange={(e) => setBetAmount(e.target.value)}
+                className="w-full px-6 py-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-purple-300 text-xl font-bold"
+                placeholder="0.001"
+              />
+            </div>
+            
+            <Button
+              onClick={handlePlaceBet}
+              disabled={selectedOption === null || loading}
+              loading={loading}
+              className="px-8 py-4 text-xl"
+            >
+              <Zap className="w-6 h-6" />
+              Bet {betAmount} ETH 🚀
+            </Button>
+          </div>
+          
+          {selectedOption === null ? (
+            <p className="text-center text-gray-600 text-lg flex items-center justify-center gap-2">
+              <Target className="w-6 h-6" />
+              👆 Select an option above to place your bet
+            </p>
+          ) : (
+            <div className="p-6 bg-blue-100 rounded-xl border-2 border-blue-300">
+              <p className="text-blue-800 font-bold text-center text-xl">
+                🎯 Ready to bet {betAmount} ETH on "{roundData.options[selectedOption]}"
+              </p>
+            </div>
+          )}
+        </Card>
+      )}
+
+      {isOwner && roundData.info.active && (
+        <Card className="bg-yellow-50 border-4 border-yellow-300">
+          <div className="text-center py-6">
+            <Crown className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-yellow-800 mb-2">Admin Notice</h3>
+            <p className="text-yellow-700 text-lg">
+              As admin, you cannot place bets. Use Admin Control to manage rounds.
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {!account && (
+        <Card className="text-center py-12 bg-gray-50">
+          <Wallet className="w-16 h-16 mx-auto mb-6 text-gray-400" />
+          <h3 className="text-2xl font-bold text-gray-600 mb-4">Connect Your Wallet</h3>
+          <p className="text-gray-500 text-lg">Connect to place bets and win real ETH!</p>
+        </Card>
+      )}
+    </Card>
+  )
+}
+
+// Main App Component
+export default function BlockBetApp() {
+  const {
+    account,
+    balance,
+    connect,
+    disconnect,
+    isConnecting,
+    contract
+  } = useWallet()
+
+  const [currentRoundId, setCurrentRoundId] = useState(0)
+  const [totalRounds, setTotalRounds] = useState(0)
+  const [roundData, setRoundData] = useState(null)
+  const [isOwner, setIsOwner] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('betting')
+
+  // FORCE ADMIN RIGHTS for your specific wallet
+  const ADMIN_WALLET = '0xD41D2C8D846b547dF833Ba7978c20bC85BeB03DC'
+
+  // Wallet change detection
+  useEffect(() => {
+    function handleAccountsChanged(accounts) {
+      if (accounts.length === 0) {
+        disconnect()
+        toast.info('Wallet disconnected')
+      } else {
+        toast.success('Wallet changed - updating...')
+        setTimeout(() => window.location.reload(), 1500)
+      }
+    }
+
+    if (typeof window !== 'undefined' && window.ethereum) {
+      window.ethereum.on('accountsChanged', handleAccountsChanged)
+    }
+
+    return () => {
+      if (typeof window !== 'undefined' && window.ethereum?.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged)
+      }
+    }
+  }, [disconnect])
+
+  // CRITICAL: Admin detection - FORCE for your wallet
+  useEffect(() => {
+    const checkOwnership = async () => {
+      if (account) {
+        console.log('🔍 Checking admin status for:', account)
+        console.log('🎯 Admin wallet:', ADMIN_WALLET)
+        
+        // Force admin rights for your specific wallet
+        if (account.toLowerCase() === ADMIN_WALLET.toLowerCase()) {
+          console.log('👑 ADMIN WALLET DETECTED!')
+          setIsOwner(true)
+          toast.success('👑 ADMIN ACCESS GRANTED! You can create and resolve rounds!')
+          return
+        }
+
+        // Check contract owner as backup
+        if (contract) {
+          try {
+            const ownerAddress = await contract.owner()
+            console.log('📄 Contract owner:', ownerAddress)
+            
+            const isContractOwner = ownerAddress.toLowerCase() === account.toLowerCase()
+            setIsOwner(isContractOwner)
+            
+            if (isContractOwner) {
+              toast.success('👑 Contract owner detected! Admin access granted!')
+            }
+          } catch (error) {
+            console.error('❌ Error checking contract owner:', error)
+            setIsOwner(false)
+          }
+        }
+      } else {
+        setIsOwner(false)
+      }
+    }
+
+    checkOwnership()
+  }, [contract, account, ADMIN_WALLET])
+
+  // Load round data
+  const loadRoundData = async (roundId) => {
+    if (!contract || roundId >= totalRounds) return null
+
+    try {
+      setLoading(true)
+      
+      const [info, stats, options] = await Promise.all([
+        contract.getRoundInfo(roundId),
+        contract.getRoundStats(roundId),
+        contract.getOptions(roundId)
+      ])
+
+      const optionTotals = await Promise.all(
+        options.map((_, index) => contract.getOptionTotals(roundId, index))
+      )
+
+      let userBet = null
+      if (account) {
+        userBet = await contract.getUserBet(roundId, account)
+      }
+
+      return { info, stats, options, optionTotals, userBet }
+    } catch (error) {
+      console.error('Error loading round:', error)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load initial data
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (!contract) return
+
+      try {
+        const roundsCount = await contract.roundsCount()
+        setTotalRounds(roundsCount.toNumber())
+
+        if (roundsCount.toNumber() > 0) {
+          const latestRoundId = roundsCount.toNumber() - 1
+          setCurrentRoundId(latestRoundId)
+          const data = await loadRoundData(latestRoundId)
+          setRoundData(data)
+        }
+      } catch (error) {
+        console.error('Error loading initial data:', error)
+      }
+    }
+
+    loadInitialData()
+  }, [contract, account])
+
+  // Auto-refresh every 15 seconds
+  useEffect(() => {
+    if (!contract || totalRounds === 0) return
+
+    const interval = setInterval(async () => {
+      const data = await loadRoundData(currentRoundId)
+      setRoundData(data)
+      
+      try {
+        const roundsCount = await contract.roundsCount()
+        const newTotal = roundsCount.toNumber()
+        if (newTotal !== totalRounds) {
+          setTotalRounds(newTotal)
+          if (newTotal > totalRounds) {
+            setCurrentRoundId(newTotal - 1)
+          }
+        }
+      } catch (error) {
+        console.error('Error updating rounds:', error)
+      }
+    }, 15000)
+
+    return () => clearInterval(interval)
+  }, [contract, currentRoundId, totalRounds])
+
+  // Refresh function
+  const refreshData = async () => {
+    if (contract) {
+      const data = await loadRoundData(currentRoundId)
+      setRoundData(data)
+      
+      try {
+        const roundsCount = await contract.roundsCount()
+        setTotalRounds(roundsCount.toNumber())
+      } catch (error) {
+        console.error('Error updating rounds count:', error)
+      }
+    }
+  }
+
+  const handleRoundChange = async (newRoundId) => {
+    if (newRoundId !== currentRoundId && newRoundId < totalRounds) {
+      setCurrentRoundId(newRoundId)
+      const data = await loadRoundData(newRoundId)
+      setRoundData(data)
+    }
+  }
+
+  const formatAddress = (address) => {
+    if (!address) return ''
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
       {/* Header */}
-      <PremiumHeader 
-        account={account}
-        balance={balance}
-        onConnect={connectWallet}
-        onDisconnect={disconnect}
-        isLoading={isLoading}
-        isOwner={isOwner}
-      />
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white shadow-2xl">
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-5xl font-bold mb-3 flex items-center gap-4">
+                🎯 BlockBet Pro
+                <span className="text-lg font-normal bg-white/20 px-4 py-2 rounded-full">
+                  v3.0
+                </span>
+              </h1>
+              <p className="text-blue-100 text-xl">
+                Real Money Prediction Markets • Instant Payouts • Zero Fees*
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-blue-200">Smart Contract:</div>
+              <div className="font-mono text-white text-lg">
+                {formatAddress(process.env.NEXT_PUBLIC_CONTRACT_ADDRESS)}
+              </div>
+              <div className="text-sm text-blue-200 mt-1">Monad Testnet</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
-      <div className="w-screen h-screen flex flex-col">
-        <div className="flex-1 flex items-center justify-center px-4 pt-20 pb-4 overflow-auto">
-          <div className="w-full max-w-7xl mx-auto">
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        
+        {!account ? (
+          // Welcome Screen
+          <Card className="text-center py-20">
+            <Sparkles className="w-24 h-24 mx-auto mb-8 text-blue-500" />
+            <h2 className="text-4xl font-bold text-gray-800 mb-6">
+              🚀 Welcome to BlockBet Pro!
+            </h2>
+            <p className="text-xl text-gray-600 mb-12 max-w-3xl mx-auto">
+              The ultimate prediction market platform where you can bet real ETH 
+              and win big! Lightning fast, secure, and completely decentralized.
+            </p>
             
-            {!account ? (
-              // Welcome Section
-              <div className="h-full flex flex-col items-center justify-center text-center">
-                <motion.div
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8 }}
-                  className="w-full max-w-6xl"
-                >
-                  <motion.h1 
-                    initial={{ scale: 0.9 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
-                    className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-8 bg-gradient-to-r from-yellow-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent"
-                  >
-                    Welcome to BlockBet Pro
-                  </motion.h1>
-                  
-                  <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-lg md:text-xl lg:text-2xl text-gray-300 mb-12 max-w-4xl mx-auto leading-relaxed"
-                  >
-                    Experience lightning-fast prediction markets on Monad blockchain with 
-                    instant settlements and near-zero fees. Join the next generation of decentralized betting.
-                  </motion.p>
-                  
-                  {/* Stats Cards */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.6 }}
-                    className="w-full mb-12"
-                  >
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                      <StatsCard
-                        icon={<Zap className="w-8 h-8 text-yellow-400" />}
-                        title="Settlement Speed"
-                        value="1 second"
-                        change="+99%"
-                        trend="up"
-                      />
-                      <StatsCard
-                        icon={<Shield className="w-8 h-8 text-green-400" />}
-                        title="Gas Fees"
-                        value="~$0.001"
-                        change="-98%"
-                        trend="down"
-                      />
-                      <StatsCard
-                        icon={<Trophy className="w-8 h-8 text-purple-400" />}
-                        title="Win Rate"
-                        value="94%"
-                        change="+12%"
-                        trend="up"
-                      />
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.8 }}
-                    className="mb-16"
-                  >
-                    <Button 
-                      onClick={connectWallet}
-                      disabled={isLoading}
-                      loading={isLoading}
-                      size="lg"
-                      icon={<Star className="w-6 h-6" />}
-                      className="text-xl py-6 px-12 pulse-glow shadow-2xl"
-                    >
-                      Start Your Journey
-                    </Button>
-                  </motion.div>
-
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1 }}
-                    className="flex flex-wrap justify-center items-center gap-8 text-sm text-gray-400"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-green-400" />
-                      <span>100% Decentralized</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-yellow-400" />
-                      <span>Lightning Fast</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Award className="w-4 h-4 text-purple-400" />
-                      <span>Provably Fair</span>
-                    </div>
-                  </motion.div>
-                </motion.div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-12">
+              <div className="p-8 bg-blue-50 rounded-2xl border-2 border-blue-200">
+                <Zap className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+                <h3 className="font-bold text-xl text-gray-800 mb-3">Lightning Fast</h3>
+                <p className="text-gray-600">Instant settlements on Monad blockchain</p>
               </div>
-            ) : (
-              // Main Application
-              <div className="w-full h-full flex flex-col justify-center space-y-8">
-                
-                {/* Demo Notice */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="w-full"
-                >
-                  <Card className="max-w-3xl mx-auto text-center bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border-yellow-500/20 p-6">
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <Sparkles className="w-5 h-5 text-yellow-400" />
-                      <span className="text-yellow-300 font-bold">Demo Mode Active</span>
-                      <Sparkles className="w-5 h-5 text-yellow-400" />
-                    </div>
-                    <p className="text-yellow-200/80">
-                      Experience the full BlockBet Pro interface with simulated transactions
-                    </p>
-                  </Card>
-                </motion.div>
+              <div className="p-8 bg-green-50 rounded-2xl border-2 border-green-200">
+                <Shield className="w-12 h-12 text-green-600 mx-auto mb-4" />
+                <h3 className="font-bold text-xl text-gray-800 mb-3">100% Secure</h3>
+                <p className="text-gray-600">Smart contract guaranteed fairness</p>
+              </div>
+              <div className="p-8 bg-purple-50 rounded-2xl border-2 border-purple-200">
+                <Trophy className="w-12 h-12 text-purple-600 mx-auto mb-4" />
+                <h3 className="font-bold text-xl text-gray-800 mb-3">Real Rewards</h3>
+                <p className="text-gray-600">Win real ETH instantly</p>
+              </div>
+            </div>
+            
+            <Button 
+              onClick={connect}
+              disabled={isConnecting}
+              loading={isConnecting}
+              className="px-16 py-6 text-2xl font-bold shadow-2xl"
+            >
+              <Wallet className="w-8 h-8" />
+              Connect Wallet & Start Betting! 🎰
+            </Button>
+          </Card>
+        ) : (
+          <div className="space-y-8">
+            {/* Wallet Info */}
+            <WalletInfo 
+              account={account}
+              balance={balance}
+              disconnect={disconnect}
+              isOwner={isOwner}
+            />
 
-                {/* Tab Navigation */}
-                <div className="flex justify-center">
-                  <Card className="p-2 flex gap-2">
-                    <Button
-                      onClick={() => setActiveTab('betting')}
-                      variant={activeTab === 'betting' ? 'primary' : 'ghost'}
-                      icon={<BarChart3 className="w-5 h-5" />}
-                    >
-                      Live Betting
-                    </Button>
+            {/* Tab Navigation */}
+            <TabNavigation 
+              activeTab={activeTab} 
+              setActiveTab={setActiveTab} 
+              isOwner={isOwner} 
+            />
+
+            {/* Main Content */}
+            {activeTab === 'betting' ? (
+              <div className="space-y-8">
+                {/* Round Selector */}
+                {totalRounds > 0 && (
+                  <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-4 border-indigo-300">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+                        <Eye className="w-8 h-8 text-indigo-600" />
+                        Select Betting Round
+                      </h2>
+                      <div className="flex items-center gap-4">
+                        <select
+                          value={currentRoundId}
+                          onChange={(e) => handleRoundChange(Number(e.target.value))}
+                          className="px-6 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-300 font-bold text-lg"
+                        >
+                          {Array.from({ length: totalRounds }, (_, i) => (
+                            <option key={i} value={i}>
+                              🎯 Round {i + 1}
+                            </option>
+                          ))}
+                        </select>
+                        <Button onClick={refreshData} loading={loading} variant="ghost" className="text-lg">
+                          <RefreshCw className={`w-6 h-6 ${loading ? 'animate-spin' : ''}`} />
+                          Refresh
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Live Betting Interface */}
+                {totalRounds > 0 ? (
+                  <BettingRound
+                    roundId={currentRoundId}
+                    roundData={roundData}
+                    contract={contract}
+                    account={account}
+                    onRefresh={refreshData}
+                    isOwner={isOwner}
+                  />
+                ) : (
+                  <Card className="text-center py-20">
+                    <Eye className="w-24 h-24 text-gray-400 mx-auto mb-8" />
+                    <h3 className="text-3xl font-bold text-gray-600 mb-6">
+                      No Betting Rounds Available Yet
+                    </h3>
+                    <p className="text-xl text-gray-500 mb-10">
+                      {isOwner 
+                        ? "🎉 You're the admin! Create the first betting round to get started." 
+                        : "🚀 Exciting prediction markets are coming soon!"
+                      }
+                    </p>
                     {isOwner && (
                       <Button
                         onClick={() => setActiveTab('admin')}
-                        variant={activeTab === 'admin' ? 'warning' : 'ghost'}
-                        icon={<Shield className="w-5 h-5" />}
+                        variant="admin"
+                        className="px-10 py-5 text-xl"
                       >
-                        Admin Control
+                        <Crown className="w-8 h-8" />
+                        Create First Round
                       </Button>
                     )}
                   </Card>
-                </div>
-
-                {/* Main Content */}
-                <div className="flex-1 flex justify-center">
-                  <div className="w-full max-w-6xl">
-                    
-                    {activeTab === 'betting' ? (
-                      <div className="space-y-8">
-                        {/* Round Selector */}
-                        <Card>
-                          <div className="text-center mb-6">
-                            <div className="flex items-center justify-center gap-4 mb-4">
-                              <div className="p-4 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-2xl">
-                                <Users className="w-8 h-8 text-cyan-400" />
-                              </div>
-                              <div>
-                                <h2 className="text-2xl lg:text-3xl font-bold text-white">Market Selection</h2>
-                                <p className="text-gray-400">Choose your prediction market</p>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
-                            <select
-                              value={currentRoundId}
-                              onChange={(e) => setCurrentRoundId(Number(e.target.value))}
-                              className="w-full max-w-md glass text-white p-4 rounded-2xl border border-white/20 focus:border-purple-400 focus:outline-none transition-colors bg-transparent"
-                            >
-                              <option value={1} className="bg-gray-800 text-white">🚀 Bitcoin $100k Prediction</option>
-                              <option value={2} className="bg-gray-800 text-white">🏆 India World Cup 2025</option>
-                              <option value={3} className="bg-gray-800 text-white">💎 Ethereum $10k Target</option>
-                            </select>
-                            <Button
-                              onClick={handleRefresh}
-                              disabled={isLoading}
-                              variant="secondary"
-                              icon={<RefreshCw className={`w-6 h-6 ${isLoading ? 'animate-spin' : ''}`} />}
-                            />
-                          </div>
-                        </Card>
-
-                        {/* Betting Interface */}
-                        {roundInfo && (
-                          <Card className="w-full">
-                            {/* Header */}
-                            <div className="text-center mb-8">
-                              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-6 bg-gradient-to-r from-yellow-400 via-pink-400 to-cyan-400 bg-clip-text text-transparent">
-                                {roundInfo.question}
-                              </h2>
-                              
-                              <div className="flex flex-wrap justify-center items-center gap-6">
-                                <div className="flex items-center gap-3 glass rounded-2xl px-6 py-3 border border-green-500/30">
-                                  <TrendingUp className="w-6 h-6 text-green-400" />
-                                  <span className="font-bold text-white text-lg">{roundInfo.totalPot} ETH</span>
-                                  <span className="text-green-400 text-sm">Total Pool</span>
-                                </div>
-                                
-                                <div className={`flex items-center gap-3 px-6 py-3 rounded-2xl glass border font-bold ${
-                                  roundInfo.active 
-                                    ? 'border-green-500/30 text-green-300' 
-                                    : roundInfo.resolved 
-                                    ? 'border-red-500/30 text-red-300'
-                                    : 'border-gray-500/30 text-gray-300'
-                                }`}>
-                                  {roundInfo.active ? <Play className="w-5 h-5" /> : roundInfo.resolved ? <CheckCircle className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
-                                  {roundInfo.active ? 'Live Betting' : roundInfo.resolved ? 'Results Final' : 'Market Closed'}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Options */}
-                            <div className="space-y-6 mb-8">
-                              {roundInfo.options.map((option, index) => {
-                                const percentage = roundInfo.totalPot !== '0' ? 
-                                  ((parseFloat(roundInfo.optionBets[index] || '0') / parseFloat(roundInfo.totalPot)) * 100) : 0
-                                const isSelected = selectedOption === index
-                                const isWinner = roundInfo.resolved && index === roundInfo.correctOption
-
-                                return (
-                                  <motion.div
-                                    key={index}
-                                    whileHover={roundInfo.active ? { scale: 1.02, y: -2 } : {}}
-                                    whileTap={roundInfo.active ? { scale: 0.98 } : {}}
-                                    onClick={() => roundInfo.active && setSelectedOption(index)}
-                                    className={`
-                                      w-full relative cursor-pointer rounded-3xl border-2 transition-all duration-500 overflow-hidden p-8
-                                      ${isSelected 
-                                        ? 'border-purple-400 bg-gradient-to-r from-purple-500/20 to-pink-500/20 shadow-2xl shadow-purple-500/25' 
-                                        : 'border-white/20 hover:border-white/40 bg-gradient-to-r from-white/5 to-white/10'
-                                      }
-                                      ${isWinner 
-                                        ? 'border-green-400 bg-gradient-to-r from-green-500/20 to-emerald-500/20 shadow-2xl shadow-green-500/25' 
-                                        : ''
-                                      }
-                                      ${!roundInfo.active ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}
-                                    `}
-                                  >
-                                    {/* Progress bar */}
-                                    <motion.div
-                                      initial={{ width: 0 }}
-                                      animate={{ width: `${percentage}%` }}
-                                      className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-cyan-500/10"
-                                      transition={{ duration: 1.5, ease: "easeOut" }}
-                                    />
-                                    
-                                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
-                                      <div className="flex items-center gap-6">
-                                        <div className={`w-8 h-8 rounded-full border-3 transition-all duration-300 ${
-                                          isSelected 
-                                            ? 'border-purple-400 bg-gradient-to-r from-purple-400 to-pink-400' 
-                                            : 'border-white/40'
-                                        }`} />
-                                        <div className="text-center md:text-left">
-                                          <span className="text-xl md:text-2xl font-bold text-white flex items-center gap-3">
-                                            {option}
-                                            {isWinner && (
-                                              <motion.span
-                                                initial={{ scale: 0, rotate: 0 }}
-                                                animate={{ scale: 1, rotate: 360 }}
-                                                transition={{ delay: 0.5 }}
-                                                className="text-3xl"
-                                              >
-                                                🏆
-                                              </motion.span>
-                                            )}
-                                          </span>
-                                          <div className="text-gray-400 text-sm mt-1">
-                                            {roundInfo.active ? 'Click to select' : 'Betting closed'}
-                                          </div>
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="text-center">
-                                        <div className="text-xl md:text-2xl font-bold text-white mb-1">
-                                          {roundInfo.optionBets[index]} ETH
-                                        </div>
-                                        <div className={`text-sm font-medium px-3 py-1 rounded-full ${
-                                          percentage > 50 
-                                            ? 'bg-green-500/20 text-green-300' 
-                                            : 'bg-blue-500/20 text-blue-300'
-                                        }`}>
-                                          {percentage.toFixed(1)}% share
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </motion.div>
-                                )
-                              })}
-                            </div>
-
-                            {/* User's current bet */}
-                            {roundInfo.userBet && roundInfo.userBet.amount !== '0' && (
-                              <div className="w-full mb-8">
-                                <Card className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-blue-500/30">
-                                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                                    <div className="flex items-center gap-4">
-                                      <div className="p-3 bg-blue-500/20 rounded-2xl">
-                                        <BarChart3 className="w-6 h-6 text-blue-400" />
-                                      </div>
-                                      <div className="text-center md:text-left">
-                                        <span className="text-blue-300 font-medium">Your Active Bet</span>
-                                        <div className="text-sm text-blue-400/80">Position secured</div>
-                                      </div>
-                                    </div>
-                                    <div className="text-center md:text-right">
-                                      <div className="text-xl font-bold text-white">
-                                        {roundInfo.userBet.amount} ETH
-                                      </div>
-                                      <div className="text-blue-300 text-sm">
-                                        on "{roundInfo.options[roundInfo.userBet.option]}"
-                                      </div>
-                                    </div>
-                                  </div>
-                                </Card>
-                              </div>
-                            )}
-
-                            {/* Betting interface */}
-                            {roundInfo.active && (!roundInfo.userBet || roundInfo.userBet.amount === '0') && (
-                              <div className="w-full">
-                                <Card className="bg-gradient-to-r from-purple-600/10 via-pink-600/10 to-cyan-600/10 border-purple-500/20">
-                                  <div className="text-center mb-6">
-                                    <h3 className="text-2xl font-bold text-white mb-2">Place Your Prediction</h3>
-                                    <p className="text-gray-400">Enter your bet amount and confirm your choice</p>
-                                  </div>
-                                  
-                                  <div className="flex flex-col md:flex-row gap-6 items-center justify-center">
-                                    <div className="relative">
-                                      <input
-                                        type="number"
-                                        step="0.001"
-                                        min="0.001"
-                                        value={betAmount}
-                                        onChange={(e) => setBetAmount(e.target.value)}
-                                        placeholder="0.01"
-                                        className="glass border border-white/20 focus:border-purple-400 rounded-2xl px-6 py-4 text-white placeholder-gray-400 text-center font-bold text-lg focus:outline-none transition-colors w-full md:w-48 bg-transparent"
-                                      />
-                                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
-                                        ETH
-                                      </div>
-                                    </div>
-                                    
-                                    <Button
-                                      onClick={handlePlaceBet}
-                                      disabled={selectedOption === null || isLoading}
-                                      loading={isLoading}
-                                      size="lg"
-                                      icon={<Zap className="w-6 h-6" />}
-                                      className="pulse-glow w-full md:w-auto"
-                                    >
-                                      Confirm Bet
-                                    </Button>
-                                  </div>
-                                  
-                                  {selectedOption === null && (
-                                    <motion.p 
-                                      initial={{ opacity: 0 }}
-                                      animate={{ opacity: 1 }}
-                                      className="text-center text-yellow-300 mt-4 flex items-center justify-center gap-2"
-                                    >
-                                      <span>👆</span>
-                                      Select an option above to place your bet
-                                    </motion.p>
-                                  )}
-                                </Card>
-                              </div>
-                            )}
-
-                            {/* Claim winnings */}
-                            {canUserClaim && (
-                              <div className="w-full mt-8">
-                                <div className="text-center">
-                                  <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/30 mb-6">
-                                    <motion.div
-                                      animate={{ rotate: [0, 5, -5, 0] }}
-                                      transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-                                      className="text-6xl mb-4"
-                                    >
-                                      🎉
-                                    </motion.div>
-                                    <h3 className="text-3xl font-bold text-green-300 mb-2">Congratulations!</h3>
-                                    <p className="text-green-400/80">You predicted correctly and won the round!</p>
-                                  </Card>
-                                  
-                                  <Button
-                                    onClick={handleClaimWinnings}
-                                    disabled={isLoading}
-                                    loading={isLoading}
-                                    variant="success"
-                                    size="lg"
-                                    icon={<Trophy className="w-6 h-6" />}
-                                    className="pulse-glow text-xl py-6 px-10"
-                                  >
-                                    Claim Your Winnings
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-                          </Card>
-                        )}
-                      </div>
-                    ) : (
-                      // Admin Panel
-                      <Card className="bg-gradient-to-br from-yellow-600/10 to-red-600/10 border-yellow-500/20">
-                        <div className="text-center mb-8">
-                          <div className="flex items-center justify-center gap-4 mb-4">
-                            <div className="p-4 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 rounded-2xl">
-                              <Shield className="w-8 h-8 text-yellow-400" />
-                            </div>
-                            <div>
-                              <h2 className="text-3xl font-bold text-white">Admin Control Center</h2>
-                              <p className="text-gray-400">Manage prediction markets and resolve outcomes</p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="grid lg:grid-cols-2 gap-8 w-full">
-                          {/* Create Round Section */}
-                          <Card className="bg-gradient-to-r from-white/5 to-white/10">
-                            <h3 className="text-xl font-semibold mb-6 flex items-center justify-center gap-3">
-                              <div className="p-2 bg-green-500/20 rounded-xl">
-                                <Star className="w-5 h-5 text-green-400" />
-                              </div>
-                              Create New Market
-                            </h3>
-                            <div className="space-y-4">
-                              <input
-                                type="text"
-                                placeholder="Enter prediction question..."
-                                value={newQuestion}
-                                onChange={(e) => setNewQuestion(e.target.value)}
-                                className="w-full glass border border-white/20 focus:border-green-400 rounded-2xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none transition-colors bg-transparent"
-                              />
-                              {newOptions.map((option, idx) => (
-                                <input
-                                  key={idx}
-                                  type="text"
-                                  placeholder={`Option ${idx + 1}...`}
-                                  value={option}
-                                  onChange={(e) => {
-                                    const opts = [...newOptions]
-                                    opts[idx] = e.target.value
-                                    setNewOptions(opts)
-                                  }}
-                                  className="w-full glass border border-white/20 focus:border-green-400 rounded-2xl px-4 py-3 text-white placeholder-gray-400 focus:outline-none transition-colors bg-transparent"
-                                />
-                              ))}
-                              <div className="flex flex-col sm:flex-row gap-4">
-                                <Button
-                                  onClick={() => setNewOptions([...newOptions, ''])}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="w-full sm:flex-1"
-                                >
-                                  + Add Option
-                                </Button>
-                                <Button
-                                  onClick={handleCreateRound}
-                                  disabled={isLoading}
-                                  loading={isLoading}
-                                  variant="success"
-                                  icon={<Star className="w-5 h-5" />}
-                                  className="w-full sm:flex-1"
-                                >
-                                  Create Market
-                                </Button>
-                              </div>
-                            </div>
-                          </Card>
-
-                          {/* Resolve Round Section */}
-                          <Card className="bg-gradient-to-r from-white/5 to-white/10">
-                            <h3 className="text-xl font-semibold mb-6 flex items-center justify-center gap-3">
-                              <div className="p-2 bg-red-500/20 rounded-xl">
-                                <CheckCircle className="w-5 h-5 text-red-400" />
-                              </div>
-                              Resolve Market
-                            </h3>
-                            {roundInfo && roundInfo.active ? (
-                              <div className="space-y-4">
-                                <Card className="bg-gray-800/30 p-4">
-                                  <p className="text-gray-300 text-sm mb-2">Current Market:</p>
-                                  <p className="text-white font-medium">"{roundInfo.question}"</p>
-                                </Card>
-                                <div className="space-y-3">
-                                  {roundInfo.options.map((option, idx) => (
-                                    <Button
-                                      key={idx}
-                                      onClick={() => handleResolveRound(idx)}
-                                      disabled={isLoading}
-                                      loading={isLoading}
-                                      variant="warning"
-                                      icon={<Trophy className="w-5 h-5" />}
-                                      className="w-full"
-                                    >
-                                      "{option}" Wins
-                                    </Button>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="text-center py-8">
-                                <div className="text-6xl mb-4">⚪</div>
-                                <p className="text-gray-400">
-                                  {roundInfo?.resolved ? 'Current market already resolved' : 'No active market to resolve'}
-                                </p>
-                              </div>
-                            )}
-                          </Card>
-                        </div>
-                      </Card>
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
+            ) : (
+              // Admin Panel
+              <AdminPanel 
+                contract={contract}
+                onRefresh={refreshData}
+                roundData={roundData}
+                currentRoundId={currentRoundId}
+                totalRounds={totalRounds}
+              />
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
